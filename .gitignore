@@ -1,5 +1,5 @@
-# secrets
 .session
+input.txt
 
 # rust
 target/
