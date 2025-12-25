@@ -1,3 +1,9 @@
+const INPUT: &str = include_str!("../../../inputs/2015/01.txt");
+
+fn parse(input: &str) -> &str {
+    input
+}
+
 fn part1(input: &str) -> i32 {
     input
         .trim()
@@ -20,7 +26,7 @@ fn part2(input: &str) -> usize {
 }
 
 fn main() {
-    let input = include_str!("../../input.txt");
+    let input = parse(INPUT);
 
     println!("Part 1: {}", part1(input));
     println!("Part 2: {}", part2(input));

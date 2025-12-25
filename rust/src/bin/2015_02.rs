@@ -1,3 +1,7 @@
+fn parse(input: &str) -> &str {
+    input
+}
+
 fn part1(input: &str) -> u32 {
     input
         .lines()
@@ -35,11 +39,13 @@ fn part2(input: &str) -> u32 {
         .sum()
 }
 
-fn main() {
-    let input = include_str!("../../input.txt");
+const INPUT: &str = include_str!("../../../inputs/2015/02.txt");
 
-    println!("Part 1: {}", part1(input));
-    println!("Part 2: {}", part2(input));
+fn main() {
+    let input = parse(INPUT);
+
+    println!("Part 1: {}", part1(&input));
+    println!("Part 2: {}", part2(&input));
 }
 
 #[cfg(test)]
