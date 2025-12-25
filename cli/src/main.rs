@@ -108,11 +108,10 @@ fn get_input(input_path: &Path, session_path: &Path, year: u16, day: u8) -> Resu
 }
 
 fn cmd_new(root: &Path, year: u16, day: u8, language: Language) -> Result<()> {
-    let day_padded = format!("{day:02}");
-    let day_dir = root.join(year.to_string()).join(&day_padded);
-    fs::create_dir_all(&day_dir)?;
+    let year_dir = root.join("inputs").join(year.to_string());
+    fs::create_dir_all(&year_dir)?;
 
-    let input_path = day_dir.join("input.txt");
+    let input_path = year_dir.join(format!("{day:02}.txt"));
     let session_path = root.join(".session");
 
     if !input_path.exists() {
@@ -121,21 +120,28 @@ fn cmd_new(root: &Path, year: u16, day: u8, language: Language) -> Result<()> {
 
     match language {
         Language::Rust => {
-            if day_dir.join("rust").exists() {
+            let rust_dir = root.join("rust");
+            let bin_dir = rust_dir.join("src").join("bin");
+
+            if !rust_dir.join("Cargo.toml").exists() {
+                fs::create_dir_all(&rust_dir)?;
+                Command::new("cargo")
+                    .args(["init", "--lib", "--name", "aoc", "--vcs", "none"])
+                    .current_dir(rust_dir)
+                    .status()?;
+                fs::create_dir_all(&bin_dir)?;
+            }
+
+            let file_path = bin_dir.join(format!("{year}_{day:02}.rs"));
+            if file_path.exists() {
                 return Ok(());
             }
 
-            Command::new("cargo")
-                .args([
-                    "new",
-                    "rust",
-                    "--name",
-                    &format!("aoc_{year}_{day_padded}"),
-                    "--vcs",
-                    "none",
-                ])
-                .current_dir(day_dir)
-                .status()?;
+            let template = include_str!("../templates/rust.rs")
+                .replace("{{year}}", &year.to_string())
+                .replace("{{day}}", &format!("{day:02}"));
+
+            fs::write(file_path, template)?;
         }
         Language::Python => {
             todo!("Python not implemented")
