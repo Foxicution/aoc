@@ -1,3 +1,7 @@
+fn parse(input: &str) -> &str {
+    input
+}
+
 fn part1(input: &str) -> usize {
     let mut pos = (0, 0);
     let mut visited = std::collections::HashSet::new();
@@ -53,11 +57,13 @@ fn part2(input: &str) -> usize {
     visited.len()
 }
 
-fn main() {
-    let input = include_str!("../../input.txt");
+const INPUT: &str = include_str!("../../../inputs/2015/03.txt");
 
-    println!("Part 1: {}", part1(input));
-    println!("Part 2: {}", part2(input));
+fn main() {
+    let input = parse(INPUT);
+
+    println!("Part 1: {}", part1(&input));
+    println!("Part 2: {}", part2(&input));
 }
 
 #[cfg(test)]
