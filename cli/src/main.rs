@@ -1,6 +1,8 @@
 use anyhow::{Result, bail};
 use chrono::{Datelike, Local};
 use clap::{Parser, Subcommand, ValueEnum, command};
+use regex::Regex;
+use scraper::{Html, Selector};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -20,6 +22,11 @@ enum Commands {
         year: u16,
         day: u8,
         language: Language,
+    },
+
+    Desc {
+        year: u16,
+        day: u8,
     },
 }
 
@@ -151,6 +158,90 @@ fn cmd_new(root: &Path, year: u16, day: u8, language: Language) -> Result<()> {
     Ok(())
 }
 
+fn clean_md(md: &str) -> String {
+    // 1. Fix Headers: Remove the backslash escape
+    // html2md turns <h2> into "\--- Title ---" followed by a line of dashes.
+    // We want just "--- Title ---"
+    let md = md.replace(r"\---", "---");
+
+    // 2. Remove the ugly header separator line (e.g. "----------")
+    // We look for a line that contains only dashes (3 or more)
+    let re_header_line = Regex::new(r"(?m)^-{3,}\s*$").unwrap();
+    let md = re_header_line.replace_all(&md, "");
+
+    // 3. Convert List items from '*' to '-'
+    // (?m) enables multi-line mode so ^ matches start of line
+    let re_list = Regex::new(r"(?m)^\* ").unwrap();
+    let md = re_list.replace_all(&md, "- ");
+
+    // 4. Cleanup excessive newlines left behind by removals
+    let re_newlines = Regex::new(r"\n{3,}").unwrap();
+    let md = re_newlines.replace_all(&md, "\n\n");
+
+    md.trim().to_string()
+}
+
+fn cmd_desc(root: &Path, year: u16, day: u8) -> Result<()> {
+    let desc_dir = root.join("descriptions").join(year.to_string());
+    let desc_path = desc_dir.join(format!("{day:02}.md"));
+
+    if desc_path.exists() {
+        let md = fs::read_to_string(&desc_path)?;
+
+        if md.contains("--- Part Two ---") {
+            println!("{md}");
+            return Ok(());
+        }
+    }
+
+    let session_path = root.join(".session");
+    if !session_path.exists() {
+        bail!(
+            "Could not find '.session' at root.\n\
+             {session_path:?}\n\
+             (Run 'touch .session' and copy your session token into the file)"
+        )
+    }
+
+    let cookie = fs::read_to_string(session_path)?.trim().to_string();
+    let url = format!("https://adventofcode.com/{year}/day/{day}");
+
+    let client = reqwest::blocking::Client::new();
+    let res = client
+        .get(url)
+        .header("Cookie", format!("session={cookie}"))
+        .header(reqwest::header::USER_AGENT, "github.com/Foxicution/aoc")
+        .send()?
+        .error_for_status()?;
+
+    let html = res.text()?;
+    let document = Html::parse_document(&html);
+    let selector = Selector::parse("article.day-desc").unwrap();
+
+    let mut md = String::new();
+
+    // Loop through articles (Part 1 and Part 2 are separate <article> tags)
+    for (i, element) in document.select(&selector).enumerate() {
+        if i > 0 {
+            md.push_str("\n\n");
+        }
+        let html_part = element.inner_html();
+        let md_part = html2md::parse_html(&html_part);
+        md.push_str(&md_part);
+    }
+
+    md = clean_md(&md);
+    if md.is_empty() {
+        bail!("Parsed markdown is empty. Something went wrong.")
+    }
+
+    fs::create_dir_all(desc_dir)?;
+    fs::write(&desc_path, &md)?;
+
+    println!("{md}");
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let root = find_project_root()?;
     let cli = Cli::parse();
@@ -163,6 +254,10 @@ fn main() -> Result<()> {
         } => {
             validate_date(year, day)?;
             cmd_new(&root, year, day, language)?;
+        }
+        Commands::Desc { year, day } => {
+            validate_date(year, day)?;
+            cmd_desc(&root, year, day)?;
         }
     }
     Ok(())
