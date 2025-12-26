@@ -1,5 +1,5 @@
 fn parse(input: &str) -> &str {
-    input
+    input.trim()
 }
 
 fn part1(input: &str) -> u8 {
