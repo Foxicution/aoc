@@ -1,12 +1,11 @@
 const INPUT: &str = include_str!("../../../inputs/2015/01.txt");
 
 fn parse(input: &str) -> &str {
-    input
+    input.trim()
 }
 
 fn part1(input: &str) -> i32 {
     input
-        .trim()
         .bytes()
         .map(|ch| if ch == b'(' { 1 } else { -1 })
         .sum()
