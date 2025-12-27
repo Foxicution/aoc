@@ -1,4 +1,4 @@
-use aoc::md5;
+use aoc::md5::hash;
 
 fn parse(input: &str) -> &str {
     input.trim()
@@ -6,7 +6,7 @@ fn parse(input: &str) -> &str {
 
 fn find_suffix(input: &str, start: u64, check: fn(&[u8]) -> bool) -> u64 {
     for i in start.. {
-        if check(&md5(format!("{input}{i}"))) {
+        if check(&hash(format!("{input}{i}"))) {
             return i;
         }
     }
