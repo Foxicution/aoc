@@ -27,12 +27,12 @@ mod tests {
     #[rstest]
     #[case("", 1)]
     fn test_part1(#[case] input: &str, #[case] expected: u8) {
-        assert_eq!(part1(input), expected)
+        assert_eq!(part1(&parse(input)), expected)
     }
 
     #[rstest]
     #[case("", 1)]
     fn test_part2(#[case] input: &str, #[case] expected: u8) {
-        assert_eq!(part2(input), expected)
+        assert_eq!(part2(&parse(input)), expected)
     }
 }
