@@ -41,8 +41,23 @@ fn part1(input: &[(Action, [usize; 4])]) -> usize {
     grid.iter().filter(|x| **x).count()
 }
 
-fn part2(input: &str) -> u8 {
-    0
+fn part2(input: &[(Action, [usize; 4])]) -> usize {
+    // array causes stack overflow
+    let mut grid: Vec<usize> = vec![0; 1000 * 1000];
+
+    for &(action, [x1, y1, x2, y2]) in input {
+        grid.chunks_exact_mut(1000)
+            .skip(y1)
+            .take(y2 - y1 + 1)
+            .for_each(|row| match action {
+                Action::On => row[x1..=x2].iter_mut().for_each(|i| *i += 1),
+                Action::Off => row[x1..=x2]
+                    .iter_mut()
+                    .for_each(|i| *i = i.saturating_sub(1)),
+                Action::Toggle => row[x1..=x2].iter_mut().for_each(|i| *i += 2),
+            });
+    }
+    grid.iter().sum()
 }
 
 const INPUT: &str = include_str!("../../../inputs/2015/06.txt");
@@ -51,7 +66,7 @@ fn main() {
     let input = parse(INPUT);
 
     println!("Part 1: {}", part1(&input));
-    // println!("Part 2: {}", part2(&input));
+    println!("Part 2: {}", part2(&input));
 }
 
 #[cfg(test)]
@@ -73,9 +88,10 @@ mod tests {
         assert_eq!(part1(&parse(input)), expected)
     }
 
-    // #[rstest]
-    // #[case("", 1)]
-    // fn test_part2(#[case] input: &str, #[case] expected: u8) {
-    //     assert_eq!(part2(input), expected)
-    // }
+    #[rstest]
+    #[case("turn on 0,0 through 0,0", 1)]
+    #[case("toggle 0,0 through 999,999", 2000000)]
+    fn test_part2(#[case] input: &str, #[case] expected: usize) {
+        assert_eq!(part2(&parse(input)), expected)
+    }
 }
