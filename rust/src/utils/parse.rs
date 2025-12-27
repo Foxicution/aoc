@@ -63,9 +63,17 @@ macro_rules! impl_signed {
 impl_unsigned!(u8, u16, u32, u64, u128, usize);
 impl_signed!(i8, i16, i32, i64, i128, isize);
 
-pub fn numbers<T: Parse>(text: &str) -> impl Iterator<Item = T> + '_ {
-    let mut cursor = text.as_bytes();
+pub fn numbers<T: Parse, S: AsRef<[u8]> + ?Sized>(text: &S) -> impl Iterator<Item = T> + '_ {
+    let mut cursor = text.as_ref();
     std::iter::from_fn(move || T::parse_next(&mut cursor))
+}
+
+pub fn array<T: Default + Copy, const N: usize>(iter: &mut impl Iterator<Item = T>) -> [T; N] {
+    let mut arr = [T::default(); N];
+    (0..N).for_each(|i| {
+        arr[i] = iter.next().expect("Not enough elements in iterator");
+    });
+    arr
 }
 
 #[cfg(test)]
@@ -126,5 +134,13 @@ mod tests {
     fn test_i8_overflow_panics() {
         let text = "128";
         let _result: Vec<i8> = numbers(text).collect();
+    }
+
+    #[test]
+    fn test_array() {
+        let text = "10, 20, 30, 40";
+        let mut iter = numbers(text);
+        let arr: [u8; 4] = array(&mut iter);
+        assert_eq!(arr, [10, 20, 30, 40]);
     }
 }
