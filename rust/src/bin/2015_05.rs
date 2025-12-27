@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 fn parse(input: &str) -> &str {
     input.trim()
 }
@@ -36,8 +38,38 @@ fn part1(input: &str) -> usize {
         .count()
 }
 
-fn part2(input: &str) -> u8 {
-    0
+fn part2(input: &str) -> usize {
+    input
+        .lines()
+        .filter(|l| {
+            let mut pairs: HashMap<(u8, u8), usize> = HashMap::new();
+            let mut pair_match = false;
+            let mut letter_match = false;
+            let bytes = l.as_bytes();
+
+            pairs.insert((bytes[0], bytes[1]), 0);
+
+            for i in 1..l.len() - 1 {
+                if !letter_match && bytes[i - 1] == bytes[i + 1] {
+                    letter_match = true;
+                }
+                if !pair_match {
+                    if let Some(pos) = pairs.get(&(bytes[i], bytes[i + 1])) {
+                        if pos + 2 <= i {
+                            pair_match = true;
+                        }
+                    } else {
+                        pairs.insert((bytes[i], bytes[i + 1]), i);
+                    }
+                }
+
+                if pair_match && letter_match {
+                    return true;
+                }
+            }
+            false
+        })
+        .count()
 }
 
 const INPUT: &str = include_str!("../../../inputs/2015/05.txt");
@@ -65,9 +97,14 @@ mod tests {
         assert_eq!(part1(input), expected)
     }
 
-    // #[rstest]
-    // #[case("", 1)]
-    // fn test_part2(#[case] input: &str, #[case] expected: u8) {
-    //     assert_eq!(part2(input), expected)
-    // }
+    #[rstest]
+    #[case("aaa", 0)]
+    #[case("qjhvhtzxzqqjkmpb", 1)]
+    #[case("xxyxx", 1)]
+    #[case("uurcxstgmygtbstg", 0)]
+    #[case("ieodomkazucvgmuy", 0)]
+    #[trace]
+    fn test_part2(#[case] input: &str, #[case] expected: usize) {
+        assert_eq!(part2(input), expected)
+    }
 }
