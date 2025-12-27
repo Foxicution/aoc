@@ -94,7 +94,7 @@ mod tests {
     #[case("dvszwmarrgswjxmb", 0)]
     #[trace]
     fn test_part1(#[case] input: &str, #[case] expected: usize) {
-        assert_eq!(part1(input), expected)
+        assert_eq!(part1(parse(input)), expected)
     }
 
     #[rstest]
