@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use chrono::{Datelike, Local};
 use clap::{Parser, Subcommand, ValueEnum, command};
 use regex::Regex;
@@ -27,6 +27,11 @@ enum Commands {
     Desc {
         year: u16,
         day: u8,
+    },
+    Input {
+        year: u16,
+        day: u8,
+        slice: Option<String>,
     },
 }
 
@@ -242,6 +247,73 @@ fn cmd_desc(root: &Path, year: u16, day: u8) -> Result<()> {
     Ok(())
 }
 
+fn cmd_input(root: &Path, year: u16, day: u8, slice: Option<String>) -> Result<()> {
+    let year_dir = root.join("inputs").join(year.to_string());
+    // Ensure dir exists so get_input doesn't fail on fs::write
+    fs::create_dir_all(&year_dir)?;
+
+    let input_path = year_dir.join(format!("{day:02}.txt"));
+    let session_path = root.join(".session");
+
+    // Reuse your existing logic to fetch if missing
+    if !input_path.exists() {
+        get_input(&input_path, &session_path, year, day)?;
+    }
+
+    let content = fs::read_to_string(&input_path)?;
+
+    // If no slice is provided, print the raw content (preserves trailing newlines)
+    if slice.is_none() {
+        print!("{}", content);
+        return Ok(());
+    }
+
+    // Handle slicing logic
+    let lines: Vec<&str> = content.lines().collect();
+    let total_lines = lines.len();
+    let range_str = slice.unwrap();
+
+    // Default: full range
+    let (mut start, mut end) = (0, total_lines);
+
+    if let Some((s, e)) = range_str.split_once(':') {
+        // Handle "10:" -> start=10
+        if !s.is_empty() {
+            start = s.parse::<usize>().context("Invalid start index")?;
+        }
+        // Handle ":5" -> end=5
+        if !e.is_empty() {
+            end = e.parse::<usize>().context("Invalid end index")?;
+        }
+    } else {
+        // Handle single number "5" -> print just line 5?
+        // Or assume they meant "0:5"? Let's treat single number as "print line N"
+        if let Ok(line_num) = range_str.parse::<usize>() {
+            start = line_num;
+            end = line_num + 1;
+        } else {
+            bail!("Invalid slice format. Use 'start:end', 'start:', ':end', or 'line_num'");
+        }
+    }
+
+    // Bounds checking to prevent panics
+    if start > total_lines {
+        start = total_lines;
+    }
+    if end > total_lines {
+        end = total_lines;
+    }
+    if start > end {
+        start = end;
+    }
+
+    for line in &lines[start..end] {
+        println!("{}", line);
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let root = find_project_root()?;
     let cli = Cli::parse();
@@ -258,6 +330,10 @@ fn main() -> Result<()> {
         Commands::Desc { year, day } => {
             validate_date(year, day)?;
             cmd_desc(&root, year, day)?;
+        }
+        Commands::Input { year, day, slice } => {
+            validate_date(year, day)?;
+            cmd_input(&root, year, day, slice)?;
         }
     }
     Ok(())
